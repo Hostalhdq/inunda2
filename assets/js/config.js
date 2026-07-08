@@ -7,5 +7,5 @@ window.SITE_CONFIG = {
 
   // URL del Web App de Google Apps Script que valida usuario/contraseña contra la Google Sheet.
   // La obtienes al hacer "Implementar > Nueva implementación > Aplicación web" en script.google.com.
-  APPS_SCRIPT_URL: "PEGA_AQUI_LA_URL_DE_TU_APPS_SCRIPT_WEB_APP",
+  APPS_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxnVJODRKwSGuL6sSKtBwoyZ9FbEdGQ8fbO8u7x3-iBe3s19RdcN23G8PpeLVTvRpwD3g/exec",
 };
