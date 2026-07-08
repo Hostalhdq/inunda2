@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "id": "1783471068820-prueba",
+    "title": "prueba",
+    "description": "A casi 20 años de la inundación de collao",
+    "imagePath": "data/images/1783471068820-prueba.jpg",
+    "author": "Colaborador 1",
+    "createdAt": "2026-07-08T00:37:51.041Z"
+  }
+]
