@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Collao Alerta — Inundaciones de Collao</title>
+<meta name="description" content="Información, prevención y reportes ciudadanos sobre las inundaciones en el sector Collao, Concepción.">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand"><span class="dot"></span>Collao Alerta</a>
+    <div class="nav-links">
+      <a href="#sobre">Sobre el sector</a>
+      <a href="#reportes">Reportes</a>
+      <a href="login.html" class="btn btn-primary">Colaboradores</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero container">
+  <div class="tag"><span class="pulse"></span> Monitoreo comunitario en curso</div>
+  <h1>Inundaciones de Collao</h1>
+  <p class="lead">
+    Un espacio comunitario para informar, prevenir y documentar las inundaciones que afectan
+    al sector de Collao en Concepción. Colaboradores verificados suben fotos y reportes en
+    tiempo real para que todos los vecinos estén al tanto.
+  </p>
+  <div class="hero-actions">
+    <a href="#reportes" class="btn btn-primary">Ver reportes recientes</a>
+    <a href="login.html" class="btn btn-ghost">Soy colaborador</a>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="stats" id="sobre">
+    <div class="stat"><b>+30 años</b><span>de eventos de anegamiento registrados en el sector</span></div>
+    <div class="stat"><b>10</b><span>colaboradores verificados reportando en terreno</span></div>
+    <div class="stat"><b>100%</b><span>reportes abiertos y descargables para la comunidad</span></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>¿Por qué se inunda Collao?</h2>
+        <p>Contexto rápido para nuevos vecinos y visitantes.</p>
+      </div>
+    </div>
+    <div class="card" style="padding:28px 30px;">
+      <p style="color:var(--text-dim); margin:0;">
+        El sector de Collao se ubica en una zona baja de Concepción, con sistemas de
+        aguas lluvias que se saturan durante temporales intensos. La combinación de
+        napa freática alta, calles con pendiente mínima y crecidas del estero cercano
+        provoca anegamientos recurrentes en invierno. Este sitio busca centralizar la
+        información de la comunidad para anticipar riesgos y coordinar ayuda.
+        <em>(Reemplaza este texto con la información oficial o histórica que tengas del sector.)</em>
+      </p>
+    </div>
+  </section>
+
+  <section id="reportes">
+    <div class="section-head">
+      <div>
+        <h2>Reportes de colaboradores</h2>
+        <p>Fotos y descripciones subidas por la comunidad verificada.</p>
+      </div>
+      <a href="login.html" class="btn btn-alert">+ Subir un reporte</a>
+    </div>
+    <div class="feed" id="feed">
+      <div class="empty-state" style="grid-column:1/-1">Cargando publicaciones…</div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="container">
+    Collao Alerta — proyecto comunitario. Los reportes son de libre acceso: cualquiera puede
+    verlos y descargarlos.
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>
