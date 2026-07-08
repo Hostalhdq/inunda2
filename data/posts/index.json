@@ -6,5 +6,13 @@
     "imagePath": "data/images/1783471068820-prueba.jpg",
     "author": "Colaborador 1",
     "createdAt": "2026-07-08T00:37:51.041Z"
+  },
+  {
+    "id": "1783474714412-terminal-collao",
+    "title": "Terminal Collao",
+    "description": "El terminal estaba lleno de agua lo que impedía la llegada de los buses, recuerdo que me fueron a dejar al terminal camilo henriquez y tuve que caminar por la carretera general bonilla y en la rotonda era un verdadero rio  que pesaban las piernas para poder moverse.",
+    "imagePath": "data/images/1783474714412-terminal-collao.jpg",
+    "author": "Colaborador 1",
+    "createdAt": "2026-07-08T01:38:36.393Z"
   }
 ]
