@@ -126,7 +126,7 @@
                         <i class="fa-solid fa-map-location-dot mr-1.5"></i> Mapa Comunitario
                     </button>
                     <button onclick="switchTab('reportes')" id="tab-reportes" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
-                        <i class="fa-solid fa-list-check mr-1.5"></i> Reportes <span id="report-count-badge" class="ml-1 bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full">3</span>
+                        <i class="fa-solid fa-list-check mr-1.5"></i> Reportes <span id="report-count-badge" class="ml-1 bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full">0</span>
                     </button>
                     <button onclick="switchTab('protocolo')" id="tab-protocolo" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
                         <i class="fa-solid fa-shield-halved mr-1.5"></i> Emergencia
@@ -600,13 +600,13 @@
                                 <i class="fa-solid fa-users"></i>
                             </div>
                             <div>
-                                <div class="font-bold text-slate-200">Feed de Reportes y Votación Comunitarios</div>
-                                <div class="text-slate-400 text-[11px]">Funciona de forma interactiva en la sesión local (memoria RAM del navegador).</div>
+                                <div class="font-bold text-slate-200">Feed de Reportes, Votación e Historial</div>
+                                <div class="text-slate-400 text-[11px]">Queda guardado en este navegador (localStorage), con fecha de creación y marca de "resuelto" para armar historial. No se comparte todavía entre visitantes ni dispositivos distintos.</div>
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
                             <span class="px-2.5 py-1 rounded-full bg-amber-950 text-amber-400 border border-amber-800 font-extrabold text-[11px]">
-                                🟡 LOCAL / DEMO
+                                🟡 LOCAL / SIN COMPARTIR
                             </span>
                             <span class="text-[11px] text-slate-400">Falta conectar Supabase</span>
                         </div>
@@ -832,30 +832,7 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
         // Global Application State & Initial Mock Data
         const STATE = {
             activeTab: 'dashboard',
-            reports: [
-                {
-                    id: "rep_20260722_collao_01",
-                    latitud: -36.8210,
-                    longitud: -73.0310,
-                    categoria: "anegamiento",
-                    nivel_severidad: "medio",
-                    descripcion: "Acumulación de agua en vereda cerca de Av. Collao con Los Carrera",
-                    timestamp: "2026-07-22T21:00:00Z",
-                    confirmaciones_vecinales: 3,
-                    estado: "activo"
-                },
-                {
-                    id: "rep_20260722_collao_02",
-                    latitud: -36.8255,
-                    longitud: -73.0250,
-                    categoria: "colector_tapado",
-                    nivel_severidad: "bajo",
-                    descripcion: "Colector de agua con hojas secas en sector paso UBB",
-                    timestamp: "2026-07-22T20:30:00Z",
-                    confirmaciones_vecinales: 2,
-                    estado: "activo"
-                }
-            ],
+            reports: [], // se carga desde localStorage (loadReports) — historial real, sin datos de ejemplo
             weather: {
                 rainRate: 0.0,
                 rain24h: 0.0,
@@ -874,11 +851,43 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
         // On DOM Load Initialization
         window.addEventListener('DOMContentLoaded', () => {
             loadManualRiverLevel();
+            loadReports();
             initWeatherChart();
             fetchWeatherData();
             renderReportsFeed();
             updateReportBadge();
         });
+
+        // Carga el historial de reportes guardado en este navegador (persiste entre visitas via
+        // localStorage, porque el sitio es estático y no tiene backend todavía — ver Supabase en
+        // la guía técnica para cuando el historial deba compartirse entre todos los visitantes)
+        function loadReports() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('collaoAlerta_reports') || 'null');
+                if (Array.isArray(saved)) {
+                    STATE.reports = saved;
+                }
+            } catch (e) {
+                console.warn('No se pudo leer el historial de reportes guardado:', e);
+            }
+        }
+
+        function saveReports() {
+            localStorage.setItem('collaoAlerta_reports', JSON.stringify(STATE.reports));
+        }
+
+        // Marca (o desmarca) un reporte como solucionado, para que el historial muestre el tic verde
+        function toggleReportResolved(id) {
+            const report = STATE.reports.find(r => r.id === id);
+            if (!report) return;
+            report.resuelto = !report.resuelto;
+            report.resueltoAt = report.resuelto ? new Date().toISOString() : null;
+            report.estado = report.resuelto ? 'resuelto' : 'activo';
+            saveReports();
+            renderReportsFeed();
+            renderMapMarkers();
+            updateReportBadge();
+        }
 
         // Carga el último nivel del estero cargado a mano (persiste en este navegador via localStorage,
         // porque el sitio es estático y no tiene backend todavía)
@@ -1161,13 +1170,13 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
             const filtered = filter === 'todos' ? STATE.reports : STATE.reports.filter(r => r.categoria === filter);
 
             filtered.forEach(rep => {
-                let badgeColor = rep.nivel_severidad === 'alto' ? '#ef4444' : (rep.nivel_severidad === 'medio' ? '#f59e0b' : '#38bdf8');
-                let pulseClass = rep.nivel_severidad === 'alto' ? 'pulse-marker-high' : (rep.nivel_severidad === 'medio' ? 'pulse-marker-medium' : '');
+                let badgeColor = rep.resuelto ? '#10b981' : (rep.nivel_severidad === 'alto' ? '#ef4444' : (rep.nivel_severidad === 'medio' ? '#f59e0b' : '#38bdf8'));
+                let pulseClass = rep.resuelto ? '' : (rep.nivel_severidad === 'alto' ? 'pulse-marker-high' : (rep.nivel_severidad === 'medio' ? 'pulse-marker-medium' : ''));
 
                 const customIcon = L.divIcon({
                     className: 'custom-div-icon',
                     html: `<div class="${pulseClass} w-7 h-7 flex items-center justify-center text-white text-xs font-black shadow-lg" style="background-color: ${badgeColor}; border:2px solid white; border-radius:50%;">
-                             <i class="fa-solid ${getCategoryIcon(rep.categoria)}"></i>
+                             <i class="fa-solid ${rep.resuelto ? 'fa-check' : getCategoryIcon(rep.categoria)}"></i>
                            </div>`,
                     iconSize: [28, 28],
                     iconAnchor: [14, 14]
@@ -1179,16 +1188,21 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
                     <div class="p-1 space-y-2">
                         <div class="flex items-center justify-between text-[11px] font-bold">
                             <span class="uppercase tracking-wider px-2 py-0.5 rounded text-white" style="background-color: ${badgeColor}">
-                                ${rep.categoria.replace('_', ' ')}
+                                ${rep.resuelto ? '✅ resuelto' : rep.categoria.replace('_', ' ')}
                             </span>
                             <span class="text-slate-400">${formatTime(rep.timestamp)}</span>
                         </div>
                         <p class="text-xs font-medium text-slate-100">${rep.descripcion}</p>
                         <div class="flex items-center justify-between pt-2 border-t border-slate-700 text-xs">
                             <span class="text-slate-400"><i class="fa-solid fa-users text-sky-400"></i> ${rep.confirmaciones_vecinales} vecinos respaldan</span>
-                            <button onclick="confirmReport('${rep.id}')" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded text-[11px] transition">
-                                +1 Confirmar
-                            </button>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="confirmReport('${rep.id}')" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded text-[11px] transition">
+                                    +1 Confirmar
+                                </button>
+                                <button onclick="toggleReportResolved('${rep.id}')" class="px-2.5 py-1 ${rep.resuelto ? 'bg-slate-700 hover:bg-slate-600' : 'bg-emerald-700 hover:bg-emerald-600'} text-white font-bold rounded text-[11px] transition">
+                                    ${rep.resuelto ? 'Reabrir' : '✓ Solucionado'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1272,35 +1286,46 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
 
             STATE.reports.forEach(rep => {
                 const card = document.createElement('div');
-                card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-md flex flex-col justify-between hover:border-slate-700 transition space-y-3';
-                
-                let sevBadge = rep.nivel_severidad === 'alto' 
+                card.className = 'bg-slate-900 border rounded-2xl p-5 shadow-md flex flex-col justify-between transition space-y-3 ' +
+                    (rep.resuelto ? 'border-emerald-800/50 opacity-80' : 'border-slate-800 hover:border-slate-700');
+
+                let sevBadge = rep.nivel_severidad === 'alto'
                     ? '<span class="bg-rose-950 text-rose-400 border border-rose-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🔴 ALTO</span>'
-                    : (rep.nivel_severidad === 'medio' 
+                    : (rep.nivel_severidad === 'medio'
                         ? '<span class="bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🟡 MEDIO</span>'
                         : '<span class="bg-sky-950 text-sky-400 border border-sky-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🟢 BAJO</span>');
 
+                let resueltoBadge = rep.resuelto
+                    ? '<span class="bg-emerald-950 text-emerald-400 border border-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">✅ RESUELTO</span>'
+                    : '';
+
                 card.innerHTML = `
                     <div>
-                        <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center justify-between mb-2 gap-2">
                             <span class="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
                                 <i class="fa-solid ${getCategoryIcon(rep.categoria)} text-sky-400"></i>
                                 ${rep.categoria.replace('_', ' ')}
                             </span>
-                            ${sevBadge}
+                            <div class="flex items-center gap-1.5">${sevBadge}${resueltoBadge}</div>
                         </div>
                         <p class="text-xs text-slate-200 font-medium leading-relaxed">${rep.descripcion}</p>
                     </div>
 
-                    <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <div class="pt-3 border-t border-slate-800 space-y-2 text-xs">
                         <div class="text-[11px] text-slate-400">
-                            <i class="fa-regular fa-clock mr-1"></i> ${formatTime(rep.timestamp)}
+                            <i class="fa-regular fa-calendar mr-1"></i> Creado: ${formatTime(rep.timestamp)}
+                            ${rep.resuelto ? `<br><i class="fa-solid fa-check text-emerald-400 mr-1"></i> Resuelto: ${formatTime(rep.resueltoAt)}` : ''}
                         </div>
-                        
-                        <button onclick="confirmReport('${rep.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 font-bold rounded-xl transition flex items-center space-x-1.5">
-                            <i class="fa-solid fa-thumbs-up text-xs"></i>
-                            <span>Confirmar (${rep.confirmaciones_vecinales})</span>
-                        </button>
+                        <div class="flex items-center justify-between gap-2">
+                            <button onclick="confirmReport('${rep.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 font-bold rounded-xl transition flex items-center space-x-1.5">
+                                <i class="fa-solid fa-thumbs-up text-xs"></i>
+                                <span>Confirmar (${rep.confirmaciones_vecinales})</span>
+                            </button>
+                            <button onclick="toggleReportResolved('${rep.id}')" class="px-3 py-1.5 ${rep.resuelto ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border-emerald-800'} border border-slate-700 font-bold rounded-xl transition flex items-center space-x-1.5">
+                                <i class="fa-solid ${rep.resuelto ? 'fa-rotate-left' : 'fa-check'} text-xs"></i>
+                                <span>${rep.resuelto ? 'Reabrir' : 'Marcar solucionado'}</span>
+                            </button>
+                        </div>
                     </div>
                 `;
                 container.appendChild(card);
@@ -1312,6 +1337,7 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
             const report = STATE.reports.find(r => r.id === id);
             if (report) {
                 report.confirmaciones_vecinales += 1;
+                saveReports();
                 renderReportsFeed();
                 renderMapMarkers();
             }
@@ -1354,10 +1380,13 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
                 descripcion: desc,
                 timestamp: new Date().toISOString(),
                 confirmaciones_vecinales: 1,
-                estado: "activo"
+                estado: "activo",
+                resuelto: false,
+                resueltoAt: null
             };
 
             STATE.reports.unshift(newReport);
+            saveReports();
             renderReportsFeed();
             renderMapMarkers();
             updateReportBadge();
@@ -1367,9 +1396,10 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
             if (descEl) descEl.value = '';
         }
 
+        // El badge rojo del nav muestra los reportes activos (sin resolver), no el historial completo
         function updateReportBadge() {
             const badge = document.getElementById('report-count-badge');
-            if (badge) badge.innerText = STATE.reports.length;
+            if (badge) badge.innerText = STATE.reports.filter(r => !r.resuelto).length;
         }
 
         // Helpers
@@ -1385,7 +1415,8 @@ Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
 
         function formatTime(isoStr) {
             const date = new Date(isoStr);
-            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return date.toLocaleDateString([], { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                   ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
     </script>
 </body>
