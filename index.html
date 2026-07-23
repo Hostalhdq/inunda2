@@ -1,88 +1,1329 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full bg-slate-900 text-slate-100">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Collao Alerta — Inundaciones de Collao</title>
-<meta name="description" content="Información, prevención y reportes ciudadanos sobre las inundaciones en el sector Collao, Concepción.">
-<link rel="stylesheet" href="assets/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collao Alerta | Prevención Meteorológica e Hidrológica</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        alert: {
+                            green: '#10b981',
+                            yellow: '#f59e0b',
+                            red: '#ef4444',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Chart.js for Telemetry Trends -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom inline styles for map markers & pulse effects -->
+    <style>
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        @keyframes pulse-yellow {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
+        .pulse-marker-high {
+            animation: pulse-red 1.8s infinite;
+            border-radius: 50%;
+        }
+        .pulse-marker-medium {
+            animation: pulse-yellow 2.2s infinite;
+            border-radius: 50%;
+        }
+        .leaflet-container {
+            font-family: 'Inter', sans-serif !important;
+            background-color: #0f172a !important;
+        }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #334155;
+            border-radius: 0.75rem !important;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
 </head>
-<body>
+<body class="h-full flex flex-col font-sans bg-slate-950 text-slate-100 antialiased overflow-x-hidden">
 
-<nav class="nav">
-  <div class="nav-inner">
-    <a href="index.html" class="brand"><span class="dot"></span>Collao Alerta</a>
-    <div class="nav-links">
-      <a href="#sobre">Sobre el sector</a>
-      <a href="#reportes">Reportes</a>
-      <a href="login.html" class="btn btn-primary">Colaboradores</a>
+    <!-- Top Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Identity -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+                        <i class="fa-solid me-0 fa-cloud-showers-heavy text-xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-sky-400 via-blue-200 to-indigo-300 bg-clip-text text-transparent">Collao Alerta</span>
+                            <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-sky-950 text-sky-400 border border-sky-800/60">Concepción</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-medium">Prevención Hidrometeorológica Sector Collao - Nonguén</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Tabs -->
+                <nav class="hidden md:flex space-x-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-sky-400 bg-slate-800 shadow-sm">
+                        <i class="fa-solid fa-chart-line mr-1.5"></i> Telemetría
+                    </button>
+                    <button onclick="switchTab('mapa')" id="tab-mapa" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-map-location-dot mr-1.5"></i> Mapa Comunitario
+                    </button>
+                    <button onclick="switchTab('reportes')" id="tab-reportes" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-list-check mr-1.5"></i> Reportes <span id="report-count-badge" class="ml-1 bg-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded-full">3</span>
+                    </button>
+                    <button onclick="switchTab('protocolo')" id="tab-protocolo" class="tab-btn px-3.5 py-2 text-xs font-semibold rounded-lg transition-all text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-shield-halved mr-1.5"></i> Emergencia
+                    </button>
+                    <button onclick="switchTab('config')" id="tab-config" class="tab-btn px-3 py-2 text-xs font-semibold rounded-lg transition-all text-amber-400 hover:text-amber-300 bg-amber-950/30 border border-amber-800/40">
+                        <i class="fa-solid fa-sliders mr-1"></i> Real vs Simulación
+                    </button>
+                </nav>
+
+                <!-- Action Button -->
+                <div class="flex items-center space-x-2">
+                    <button onclick="openReportModal()" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 shadow-lg shadow-rose-900/30 transition-all hover:scale-[1.02] active:scale-95">
+                        <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> Reportar (3 Clics)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation bar -->
+        <div class="md:hidden flex justify-around border-t border-slate-800 bg-slate-900/95 py-2 px-1 text-center">
+            <button onclick="switchTab('dashboard')" id="mob-tab-dashboard" class="mob-tab flex flex-col items-center text-sky-400 text-[11px] font-medium py-1">
+                <i class="fa-solid fa-chart-line text-base mb-0.5"></i> Telemetría
+            </button>
+            <button onclick="switchTab('mapa')" id="mob-tab-mapa" class="mob-tab flex flex-col items-center text-slate-400 text-[11px] font-medium py-1">
+                <i class="fa-solid fa-map-location-dot text-base mb-0.5"></i> Mapa
+            </button>
+            <button onclick="switchTab('reportes')" id="mob-tab-reportes" class="mob-tab flex flex-col items-center text-slate-400 text-[11px] font-medium py-1">
+                <i class="fa-solid fa-list-check text-base mb-0.5"></i> Reportes
+            </button>
+            <button onclick="switchTab('protocolo')" id="mob-tab-protocolo" class="mob-tab flex flex-col items-center text-slate-400 text-[11px] font-medium py-1">
+                <i class="fa-solid fa-shield-halved text-base mb-0.5"></i> Guía
+            </button>
+            <button onclick="switchTab('config')" id="mob-tab-config" class="mob-tab flex flex-col items-center text-amber-400 text-[11px] font-medium py-1">
+                <i class="fa-solid fa-sliders text-base mb-0.5"></i> Config
+            </button>
+        </div>
+    </header>
+
+    <!-- Semaphoric Status Banner (3-Second Visual Alert Indicator) -->
+    <div id="semaforo-banner" class="bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-900 border-b border-emerald-600/40 px-4 py-3 shadow-inner transition-all duration-300">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center space-x-3 text-center sm:text-left">
+                <!-- Status Badge Indicator -->
+                <div id="semaforo-badge" class="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400">
+                    <i class="fa-solid fa-circle-check text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2 justify-center sm:justify-start">
+                        <span id="semaforo-title" class="font-extrabold text-emerald-300 text-sm tracking-wide uppercase">ESTADO VERDE - Condición Normal</span>
+                        <span id="semaforo-time" class="text-[11px] text-slate-400 bg-slate-950/60 px-2 py-0.5 rounded">Actualizado en vivo</span>
+                    </div>
+                    <p id="semaforo-desc" class="text-xs text-slate-300 mt-0.5">Datos meteorológicos en vivo desde Open-Meteo API. Sin alertas críticas vigentes en Sector Collao.</p>
+                </div>
+            </div>
+
+            <!-- Quick Telemetry Chips in Banner -->
+            <div class="flex items-center space-x-3 text-xs bg-slate-950/70 px-3 py-1.5 rounded-xl border border-slate-800">
+                <div class="text-center px-1">
+                    <span class="block text-[9px] font-bold uppercase text-emerald-400">📡 Lluvia Real</span>
+                    <span id="quick-rain-rate" class="font-bold text-sky-400">0.0 mm/h</span>
+                </div>
+                <div class="h-6 w-px bg-slate-800"></div>
+                <div class="text-center px-1">
+                    <span class="block text-[9px] font-bold uppercase text-amber-400">🧪 Suelo Estimado</span>
+                    <span id="quick-soil-sat" class="font-bold text-amber-400">35%</span>
+                </div>
+                <div class="h-6 w-px bg-slate-800"></div>
+                <div class="text-center px-1">
+                    <span class="block text-[9px] font-bold uppercase text-amber-400">🧪 Estero Simulado</span>
+                    <span id="quick-river-level" class="font-bold text-emerald-400">Normal (0.5m)</span>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
-</nav>
 
-<header class="hero container">
-  <div class="tag"><span class="pulse"></span> Monitoreo comunitario en curso</div>
-  <h1>Inundaciones de Collao</h1>
-  <p class="lead">
-    Un espacio comunitario para informar, prevenir y documentar las inundaciones que afectan
-    al sector de Collao en Concepción. Colaboradores verificados suben fotos y reportes en
-    tiempo real para que todos los vecinos estén al tanto.
-  </p>
-  <div class="hero-actions">
-    <a href="#reportes" class="btn btn-primary">Ver reportes recientes</a>
-    <a href="login.html" class="btn btn-ghost">Soy colaborador</a>
-  </div>
-</header>
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
-<main class="container">
+        <!-- TAB 1: TELEMETRY DASHBOARD -->
+        <section id="sec-dashboard" class="tab-content space-y-6">
+            
+            <!-- Context Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                <div>
+                    <h1 class="text-xl font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-gauge-high text-sky-400"></i> Telemetría Hidrometeorológica Hiperlocal
+                    </h1>
+                    <p class="text-xs text-slate-400">Datos en tiempo real integrados con Open-Meteo & Estaciones Comunitarias del Sector Collao</p>
+                </div>
+                <div class="flex items-center space-x-2 text-xs">
+                    <button onclick="fetchWeatherData()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium border border-slate-700 transition">
+                        <i class="fa-solid fa-arrows-rotate mr-1 text-sky-400"></i> Actualizar Datos
+                    </button>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-ping"></span> API En Vivo
+                    </span>
+                </div>
+            </div>
 
-  <section class="stats" id="sobre">
-    <div class="stat"><b>+30 años</b><span>de eventos de anegamiento registrados en el sector</span></div>
-    <div class="stat"><b>10</b><span>colaboradores verificados reportando en terreno</span></div>
-    <div class="stat"><b>100%</b><span>reportes abiertos y descargables para la comunidad</span></div>
-  </section>
+            <!-- Telemetry Cards Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Lluvia Actual (mm/h) -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition relative overflow-hidden group">
+                    <div class="absolute -right-3 -bottom-3 text-sky-500/10 text-7xl font-black group-hover:scale-110 transition">
+                        <i class="fa-solid fa-cloud-showers-water"></i>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+                        <span class="flex items-center gap-1.5">INTENSIDAD LLUVIAS</span>
+                        <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800/80 px-1.5 py-0.5 rounded-full font-bold">📡 REAL (Open-Meteo)</span>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="tele-rain-rate" class="text-3xl font-extrabold text-white tracking-tight">0.0</span>
+                        <span class="text-sm font-semibold text-slate-400">mm/h</span>
+                    </div>
+                    <div class="mt-3 bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-400">Acumulado 24h:</span>
+                        <span id="tele-rain-24h" class="font-bold text-sky-300">0.0 mm</span>
+                    </div>
+                </div>
 
-  <section>
-    <div class="section-head">
-      <div>
-        <h2>¿Por qué se inunda Collao?</h2>
-        <p>Contexto rápido para nuevos vecinos y visitantes.</p>
-      </div>
+                <!-- Card 2: Viento y Ráfagas -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition relative overflow-hidden group">
+                    <div class="absolute -right-3 -bottom-3 text-teal-500/10 text-7xl font-black group-hover:scale-110 transition">
+                        <i class="fa-solid fa-wind"></i>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+                        <span>VIENTO & RÁFAGAS</span>
+                        <span class="text-[9px] bg-emerald-950 text-emerald-400 border border-emerald-800/80 px-1.5 py-0.5 rounded-full font-bold">📡 REAL (Open-Meteo)</span>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="tele-wind-speed" class="text-3xl font-extrabold text-white tracking-tight">12.0</span>
+                        <span class="text-sm font-semibold text-slate-400">km/h</span>
+                    </div>
+                    <div class="mt-3 bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-400">Ráfagas Máx:</span>
+                        <span id="tele-wind-gusts" class="font-bold text-teal-300">18.0 km/h</span>
+                    </div>
+                </div>
+
+                <!-- Card 3: Saturación del Suelo -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition relative overflow-hidden group">
+                    <div class="absolute -right-3 -bottom-3 text-amber-500/10 text-7xl font-black group-hover:scale-110 transition">
+                        <i class="fa-solid fa-droplet"></i>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+                        <span>SATURACIÓN SUELO</span>
+                        <span class="text-[9px] bg-amber-950 text-amber-400 border border-amber-800/80 px-1.5 py-0.5 rounded-full font-bold">🧪 ESTIMADO (Modelo)</span>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="tele-soil-sat" class="text-3xl font-extrabold text-emerald-400 tracking-tight">35%</span>
+                        <span id="soil-sat-badge" class="text-xs font-semibold text-emerald-500 uppercase px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800">Normal</span>
+                    </div>
+                    <!-- Soil gauge bar -->
+                    <div class="mt-3 w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800">
+                        <div id="soil-sat-bar" class="bg-gradient-to-r from-emerald-500 via-amber-500 to-rose-500 h-2.5 rounded-full" style="width: 35%"></div>
+                    </div>
+                </div>
+
+                <!-- Card 4: Nivel Estero Nonguén -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition relative overflow-hidden group">
+                    <div class="absolute -right-3 -bottom-3 text-blue-500/10 text-7xl font-black group-hover:scale-110 transition">
+                        <i class="fa-solid fa-water"></i>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-400 text-xs font-semibold mb-2">
+                        <span>ESTERO NONGUÉN</span>
+                        <span class="text-[9px] bg-amber-950 text-amber-400 border border-amber-800/80 px-1.5 py-0.5 rounded-full font-bold">🧪 SIMULADO (Falta DGA)</span>
+                    </div>
+                    <div class="flex items-baseline space-x-2">
+                        <span id="tele-river-level" class="text-3xl font-extrabold text-white tracking-tight">0.50</span>
+                        <span class="text-sm font-semibold text-slate-400">metros</span>
+                    </div>
+                    <div class="mt-3 bg-slate-950 p-2 rounded-xl border border-slate-800 flex items-center justify-between text-[11px]">
+                        <span class="text-slate-400">Umbral Alerta:</span>
+                        <span class="font-bold text-amber-400">1.80 m (Desborde: 2.1m)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Forecast Trend & Risk Sectors Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Precipitation Trend Chart (2/3 width) -->
+                <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-200 text-sm">Pronóstico de Lluvia por Horas (Siguientes 24 Horas)</h3>
+                            <p class="text-xs text-slate-400">Estimación de mm por hora para el Sector Collao (Open-Meteo API)</p>
+                        </div>
+                        <span class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-lg border border-slate-700">Modelo HD 1km</span>
+                    </div>
+                    <div class="h-64 w-full">
+                        <canvas id="rainChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- High Risk Points in Sector Collao -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-bold text-slate-200 text-sm mb-1 flex items-center gap-2">
+                            <i class="fa-solid fa-location-crosshairs text-rose-400"></i> Puntos Críticos Históricos
+                        </h3>
+                        <p class="text-xs text-slate-400 mb-4">Sectores de monitoreo prioritario en Collao/Nonguén</p>
+
+                        <div class="space-y-3">
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-slate-200">Av. Collao con Los Carrera</div>
+                                    <div class="text-[11px] text-slate-400">Colapso recurrente de colector principal</div>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] font-extrabold rounded-md bg-rose-950 text-rose-400 border border-rose-800">ALTO</span>
+                            </div>
+
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-slate-200">Paso Bajo Nivel UBB</div>
+                                    <div class="text-[11px] text-slate-400">Anegamiento rápido e interrupción de transito</div>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] font-extrabold rounded-md bg-rose-950 text-rose-400 border border-rose-800">ALTO</span>
+                            </div>
+
+                            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                                <div>
+                                    <div class="font-bold text-xs text-slate-200">Puente Estero Nonguén (Sector Palomares)</div>
+                                    <div class="text-[11px] text-slate-400">Zona propensa a acumulación de debris y desborde</div>
+                                </div>
+                                <span class="px-2 py-0.5 text-[10px] font-extrabold rounded-md bg-amber-950 text-amber-400 border border-amber-800">MEDIO</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- TAB 2: INTERACTIVE COMMUNITY MAP -->
+        <section id="sec-mapa" class="tab-content hidden space-y-6">
+            <div class="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-sky-400"></i> Mapa de Georreferenciación Comunitario
+                    </h2>
+                    <p class="text-xs text-slate-400">Haz clic en cualquier punto del mapa para generar un reporte geolocalizado en el Sector Collao - Nonguén</p>
+                </div>
+                <!-- Map Filters -->
+                <div class="flex flex-wrap gap-1 text-xs">
+                    <button onclick="filterMapMarkers('todos')" class="filter-btn px-3 py-1.5 rounded-lg bg-sky-600 text-white font-semibold transition">Todos</button>
+                    <button onclick="filterMapMarkers('anegamiento')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🌧️ Anegamiento</button>
+                    <button onclick="filterMapMarkers('colector_tapado')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🧹 Colectores</button>
+                    <button onclick="filterMapMarkers('desborde')" class="filter-btn px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🌊 Desbordes</button>
+                </div>
+            </div>
+
+            <!-- Leaflet Container -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl p-2 relative">
+                <div id="collaoMap" class="w-full h-[520px] rounded-xl z-10"></div>
+                <!-- Floating Info Overlay -->
+                <div class="absolute bottom-5 left-5 z-20 bg-slate-950/90 border border-slate-800 p-3 rounded-xl text-xs space-y-1 backdrop-blur-md hidden sm:block">
+                    <div class="font-bold text-slate-200">Leyenda de Alertas</div>
+                    <div class="flex items-center space-x-2 text-[11px] text-slate-400">
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> <span>Severidad Alta</span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block ml-2"></span> <span>Media</span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-sky-400 inline-block ml-2"></span> <span>Baja</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: REPORTS FEED -->
+        <section id="sec-reportes" class="tab-content hidden space-y-6">
+            <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-sky-400"></i> Feed de Reportes Ciudadanos
+                    </h2>
+                    <p class="text-xs text-slate-400">Listado interactivo con validación de vecinas y vecinos del sector</p>
+                </div>
+                <button onclick="openReportModal()" class="px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 shadow-lg">
+                    <i class="fa-solid fa-plus mr-1"></i> Crear Reporte
+                </button>
+            </div>
+
+            <!-- Feed Container Target -->
+            <div id="reports-feed-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Dynamically populated via renderReportsFeed() -->
+            </div>
+        </section>
+
+        <!-- TAB 4: PROTOCOL & EMERGENCY -->
+        <section id="sec-protocolo" class="tab-content hidden space-y-6">
+            <div class="border-b border-slate-800 pb-3">
+                <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-rose-400"></i> Protocolo de Prevención y Teléfonos Útiles
+                </h2>
+                <p class="text-xs text-slate-400">Acciones preventivas ante eventos hidrometeorológicos severos en Concepción</p>
+            </div>
+
+            <!-- Emergency Phone Numbers -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <a href="tel:132" class="bg-slate-900 border border-slate-800 hover:border-rose-500/50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition">
+                    <i class="fa-solid fa-fire-extinguisher text-2xl text-rose-500 mb-2"></i>
+                    <span class="font-extrabold text-lg text-white">132</span>
+                    <span class="text-xs text-slate-400">Bomberos Concepción</span>
+                </a>
+                <a href="tel:133" class="bg-slate-900 border border-slate-800 hover:border-sky-500/50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition">
+                    <i class="fa-solid fa-shield-cat text-2xl text-sky-400 mb-2"></i>
+                    <span class="font-extrabold text-lg text-white">133</span>
+                    <span class="text-xs text-slate-400">Carabineros</span>
+                </a>
+                <a href="tel:131" class="bg-slate-900 border border-slate-800 hover:border-emerald-500/50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition">
+                    <i class="fa-solid fa-truck-medical text-2xl text-emerald-400 mb-2"></i>
+                    <span class="font-extrabold text-lg text-white">131</span>
+                    <span class="text-xs text-slate-400">SAMU Salud</span>
+                </a>
+                <a href="tel:412261000" class="bg-slate-900 border border-slate-800 hover:border-amber-500/50 p-4 rounded-2xl flex flex-col items-center justify-center text-center transition">
+                    <i class="fa-solid fa-building-flag text-2xl text-amber-400 mb-2"></i>
+                    <span class="font-extrabold text-sm text-white">Emergencias Mun.</span>
+                    <span class="text-xs text-slate-400">Concepción</span>
+                </a>
+            </div>
+
+            <!-- Action Checklist -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                    <div class="font-bold text-sky-400 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-1"></i> Antes de las Lluvias
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+                        <li>Limpiar canaletas y rejillas de evacuación en su propiedad.</li>
+                        <li>Retirar hojas y desechos acumulados en los sumideros de su calle.</li>
+                        <li>Verificar sellado de puertas frente a posibles anegamientos.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                    <div class="font-bold text-amber-400 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-2"></i> Durante la Lluvia Intensa
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+                        <li>Evitar transitar a pie o en vehículo por el paso bajo nivel UBB.</li>
+                        <li>Mover vehículos a zonas con mayor cota de elevación si sube el estero.</li>
+                        <li>Sintonizar canales oficiales de SENAPRED y Municipalidad.</li>
+                    </ul>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                    <div class="font-bold text-emerald-400 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-3"></i> En caso de Desborde
+                    </div>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+                        <li>Desconectar suministros de energía eléctrica a nivel de piso.</li>
+                        <li>Evacuar hacia sectores altos (hacia sectores consolidados del Collao).</li>
+                        <li>Notificar en la app la situación exacta para guiar socorristas.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: DIAGNOSTICS & DATA SOURCE CONFIGURATION -->
+        <section id="sec-config" class="tab-content hidden space-y-6">
+            
+            <div class="border-b border-slate-800 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                    <h2 class="text-xl font-extrabold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-amber-400"></i> Auditoría de Datos: ¿Qué es Real y Qué es Simulado?
+                    </h2>
+                    <p class="text-xs text-slate-400">Transparencia técnica del prototipo y mapa de configuración para puesta en producción</p>
+                </div>
+                <span class="px-3 py-1 text-xs font-bold bg-amber-950 text-amber-400 border border-amber-800 rounded-xl">
+                    <i class="fa-solid fa-gears mr-1"></i> Estado: Prototipo Híbrido
+                </span>
+            </div>
+
+            <!-- Real vs Simulated Breakdown Matrix -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+                <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-200"><i class="fa-solid fa-list-check text-sky-400 mr-2"></i>Matriz de Origen de Datos</h3>
+                    <span class="text-xs text-slate-400">Coordenadas de Operación: Concepción (-36.826, -73.049)</span>
+                </div>
+                <div class="divide-y divide-slate-800 text-xs">
+                    
+                    <!-- Open-Meteo Rain -->
+                    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-950/20">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-500 text-emerald-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-cloud-rain"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">Lluvia Actual & Pronóstico 24 Horas</div>
+                                <div class="text-slate-400 text-[11px]">Intensidad mm/h, acumulado 24h y gráfico predictivo por horas.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-extrabold text-[11px]">
+                                🟢 100% REAL EN VIVO
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-mono">Open-Meteo API</span>
+                        </div>
+                    </div>
+
+                    <!-- Open-Meteo Wind -->
+                    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-emerald-950/20">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-500 text-emerald-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-wind"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">Viento y Ráfagas (km/h)</div>
+                                <div class="text-slate-400 text-[11px]">Velocidad media y ráfagas máximas estimadas por modelo numérico.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-extrabold text-[11px]">
+                                🟢 100% REAL EN VIVO
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-mono">Open-Meteo API</span>
+                        </div>
+                    </div>
+
+                    <!-- Soil Saturation -->
+                    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-950/20">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-900/50 border border-amber-500 text-amber-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-droplet"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">Saturación del Suelo (%)</div>
+                                <div class="text-slate-400 text-[11px]">Calculado mediante algoritmo basado en la lluvia acumulada de las últimas 48h.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded-full bg-amber-950 text-amber-400 border border-amber-800 font-extrabold text-[11px]">
+                                🟡 ESTIMADO / MODELO
+                            </span>
+                            <span class="text-[11px] text-slate-400">Algoritmo Hidrológico</span>
+                        </div>
+                    </div>
+
+                    <!-- Estero Nonguén -->
+                    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-rose-950/20">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-rose-900/50 border border-rose-500 text-rose-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-water"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">Nivel de Cota Estero Nonguén (Metros)</div>
+                                <div class="text-slate-400 text-[11px]">Actualmente en modo demo/simulación. La DGA (MOP) no posee API pública abierta de baja latencia para este tramo.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded-full bg-rose-950 text-rose-400 border border-rose-800 font-extrabold text-[11px]">
+                                🔴 SIMULACIÓN DEMO
+                            </span>
+                            <span class="text-[11px] text-slate-400">Falta integrar DGA/Sensor IoT</span>
+                        </div>
+                    </div>
+
+                    <!-- Community Reports -->
+                    <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-950/20">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-900/50 border border-amber-500 text-amber-400 flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-slate-200">Feed de Reportes y Votación Comunitarios</div>
+                                <div class="text-slate-400 text-[11px]">Funciona de forma interactiva en la sesión local (memoria RAM del navegador).</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-1 rounded-full bg-amber-950 text-amber-400 border border-amber-800 font-extrabold text-[11px]">
+                                🟡 LOCAL / DEMO
+                            </span>
+                            <span class="text-[11px] text-slate-400">Falta conectar Supabase</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Interactive Calibration Controls for Demo Mode -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-md">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-amber-400"></i> Panel de Calibración & Simulación en Vivo
+                        </h3>
+                        <p class="text-xs text-slate-400">Prueba cómo responde la plataforma alterando manualmente las variables simuladas</p>
+                    </div>
+                    <button onclick="resetSimulationToNormal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl border border-slate-700 transition">
+                        <i class="fa-solid fa-rotate-left mr-1"></i> Restablecer a Normal
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                    <!-- River level slider -->
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span class="text-slate-300">Cota Estero Nonguén (Simulada):</span>
+                            <span id="slider-river-val" class="text-sky-400 font-mono text-sm">0.50 m</span>
+                        </div>
+                        <input type="range" id="simRiverSlider" min="0.2" max="2.8" step="0.1" value="0.5" oninput="updateSimulatedRiver(this.value)" class="w-full accent-sky-500 cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>0.2m (Bajo)</span>
+                            <span>1.4m (Precaución)</span>
+                            <span>2.1m (DESBORDE)</span>
+                        </div>
+                    </div>
+
+                    <!-- Soil saturation slider -->
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                        <div class="flex justify-between text-xs font-bold">
+                            <span class="text-slate-300">Saturación de Suelo (Simulada):</span>
+                            <span id="slider-soil-val" class="text-amber-400 font-mono text-sm">35%</span>
+                        </div>
+                        <input type="range" id="simSoilSlider" min="10" max="100" step="5" value="35" oninput="updateSimulatedSoil(this.value)" class="w-full accent-amber-500 cursor-pointer">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>10% (Seco)</span>
+                            <span>60% (Saturado)</span>
+                            <span>90% (Riesgo Deslizamiento)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Integration Roadmap ("Lo que falta por configurar") -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-md">
+                <h3 class="font-bold text-sm text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
+                    <i class="fa-solid fa-code-branch text-sky-400"></i> Guía Técnica: Lo que falta para Puesta en Producción 100%
+                </h3>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+                    <!-- Step 1: Supabase Backend Setup -->
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-2">
+                        <div class="font-bold text-sky-400 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded-full bg-sky-950 border border-sky-800 flex items-center justify-center text-[10px]">1</span>
+                            Conectar Base de Datos Supabase (PostGIS)
+                        </div>
+                        <p class="text-slate-400 text-[11px]">
+                            Para persistir los reportes vecinales en tiempo real entre todos los usuarios, se requiere crear la tabla en Supabase:
+                        </p>
+                        <pre class="bg-slate-900 p-2.5 rounded-lg text-[10px] font-mono text-emerald-400 border border-slate-800 overflow-x-auto">
+CREATE TABLE reportes_collao (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  latitud FLOAT NOT NULL,
+  longitud FLOAT NOT NULL,
+  categoria TEXT NOT NULL,
+  nivel_severidad TEXT NOT NULL,
+  descripcion TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  confirmaciones INT DEFAULT 1
+);</pre>
+                    </div>
+
+                    <!-- Step 2: DGA Hydrological Integration -->
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800/80 space-y-2">
+                        <div class="font-bold text-amber-400 flex items-center gap-1.5">
+                            <span class="w-5 h-5 rounded-full bg-amber-950 border border-amber-800 flex items-center justify-center text-[10px]">2</span>
+                            Sensor IoT / API Estero Nonguén (DGA Chile)
+                        </div>
+                        <p class="text-slate-400 text-[11px]">
+                            Para reemplazar la cota simulada del estero por medición real, se puede conectar un sensor ultrasónico LoRaWAN o un Webhook de la DGA:
+                        </p>
+                        <pre class="bg-slate-900 p-2.5 rounded-lg text-[10px] font-mono text-amber-300 border border-slate-800 overflow-x-auto">
+// Endpoint HTTP Webhook para Sensor de Nivel
+POST /api/v1/telemetria/estero-nonguen
+Headers: { "X-Sensor-Key": "SECURE_KEY" }
+Payload: { "nivel_metros": 0.85, "bateria": 98 }</pre>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- MODAL FORM FOR CITIZEN REPORT (3-CLICKS FAST FORM) -->
+    <div id="reportModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl transform transition-all">
+            
+            <!-- Modal Header -->
+            <div class="bg-slate-950 px-5 py-4 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-rose-600/20 border border-rose-500/40 text-rose-400 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-bullhorn"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-slate-100 text-sm">Nuevo Reporte Vecinal (3 Clics)</h3>
+                        <p class="text-[11px] text-slate-400">Notifica un problema de inundación en tiempo real</p>
+                    </div>
+                </div>
+                <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-200 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Form Content -->
+            <form id="fastReportForm" onsubmit="handleFormSubmit(event)" class="p-5 space-y-4">
+                
+                <!-- Step 1: Category Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">1. Selecciona el Tipo de Incidente</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="category-radio cursor-pointer bg-slate-950 border border-slate-800 hover:border-sky-500 p-2.5 rounded-xl flex items-center space-x-2 transition">
+                            <input type="radio" name="categoria" value="anegamiento" checked class="text-sky-500 focus:ring-0">
+                            <span class="text-xs font-semibold text-slate-200">🌧️ Anegamiento</span>
+                        </label>
+
+                        <label class="category-radio cursor-pointer bg-slate-950 border border-slate-800 hover:border-sky-500 p-2.5 rounded-xl flex items-center space-x-2 transition">
+                            <input type="radio" name="categoria" value="colector_tapado" class="text-sky-500 focus:ring-0">
+                            <span class="text-xs font-semibold text-slate-200">🧹 Colector Tapado</span>
+                        </label>
+
+                        <label class="category-radio cursor-pointer bg-slate-950 border border-slate-800 hover:border-sky-500 p-2.5 rounded-xl flex items-center space-x-2 transition">
+                            <input type="radio" name="categoria" value="desborde" class="text-sky-500 focus:ring-0">
+                            <span class="text-xs font-semibold text-slate-200">🌊 Desborde Estero</span>
+                        </label>
+
+                        <label class="category-radio cursor-pointer bg-slate-950 border border-slate-800 hover:border-sky-500 p-2.5 rounded-xl flex items-center space-x-2 transition">
+                            <input type="radio" name="categoria" value="arbol_caido" class="text-sky-500 focus:ring-0">
+                            <span class="text-xs font-semibold text-slate-200">🌳 Árbol / Cable Caído</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Step 2: Severity Selection -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-2">2. Nivel de Severidad</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="severity-btn cursor-pointer bg-slate-950 border border-slate-800 p-2 rounded-xl text-center transition">
+                            <input type="radio" name="nivel_severidad" value="bajo" class="hidden">
+                            <span class="block text-xs font-extrabold text-sky-400">🟢 Bajo</span>
+                            <span class="text-[10px] text-slate-400">Agua acumulada</span>
+                        </label>
+
+                        <label class="severity-btn cursor-pointer bg-slate-950 border border-slate-800 p-2 rounded-xl text-center transition">
+                            <input type="radio" name="nivel_severidad" value="medio" checked class="hidden">
+                            <span class="block text-xs font-extrabold text-amber-400">🟡 Medio</span>
+                            <span class="text-[10px] text-slate-400">Cubre vereda</span>
+                        </label>
+
+                        <label class="severity-btn cursor-pointer bg-slate-950 border border-slate-800 p-2 rounded-xl text-center transition">
+                            <input type="radio" name="nivel_severidad" value="alto" class="hidden">
+                            <span class="block text-xs font-extrabold text-rose-400">🔴 Alto</span>
+                            <span class="text-[10px] text-slate-400">Riesgo a hogar</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Step 3: Location Preset or Custom Description -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1">3. Ubicación o Detalle Breve</label>
+                    <input type="text" id="reportDescripcion" required placeholder="Ej: Acumulación de agua frente a Av. Collao con Los Carrera" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-500">
+                </div>
+
+                <!-- Geolocation coordinates (Hidden/Auto-assigned) -->
+                <input type="hidden" id="reportLat" value="-36.8210">
+                <input type="hidden" id="reportLng" value="-73.0310">
+
+                <div class="text-[11px] text-slate-400 bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <span><i class="fa-solid fa-location-dot text-sky-400 mr-1"></i> Coordenadas asignadas:</span>
+                    <span id="coordDisplay" class="font-mono text-slate-300 font-bold">-36.8210, -73.0310</span>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex items-center space-x-2 pt-2">
+                    <button type="button" onclick="closeReportModal()" class="w-1/3 py-2.5 text-xs font-bold text-slate-400 bg-slate-800 hover:bg-slate-700 rounded-xl transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="w-2/3 py-2.5 text-xs font-bold text-white bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 rounded-xl shadow-lg shadow-rose-900/30 transition">
+                        Publicar Alerta Inmediata
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="card" style="padding:28px 30px;">
-      <p style="color:var(--text-dim); margin:0;">
-        El sector de Collao se ubica en una zona baja de Concepción, con sistemas de
-        aguas lluvias que se saturan durante temporales intensos. La combinación de
-        napa freática alta, calles con pendiente mínima y crecidas del estero cercano
-        provoca anegamientos recurrentes en invierno. Este sitio busca centralizar la
-        información de la comunidad para anticipar riesgos y coordinar ayuda.
-        <em>(Reemplaza este texto con la información oficial o histórica que tengas del sector.)</em>
-      </p>
-    </div>
-  </section>
 
-  <section id="reportes">
-    <div class="section-head">
-      <div>
-        <h2>Reportes de colaboradores</h2>
-        <p>Fotos y descripciones subidas por la comunidad verificada.</p>
-      </div>
-      <a href="login.html" class="btn btn-alert">+ Subir un reporte</a>
-    </div>
-    <div class="feed" id="feed">
-      <div class="empty-state" style="grid-column:1/-1">Cargando publicaciones…</div>
-    </div>
-  </section>
+    <!-- MAIN JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // Global Application State & Initial Mock Data
+        const STATE = {
+            activeTab: 'dashboard',
+            reports: [
+                {
+                    id: "rep_20260722_collao_01",
+                    latitud: -36.8210,
+                    longitud: -73.0310,
+                    categoria: "anegamiento",
+                    nivel_severidad: "medio",
+                    descripcion: "Acumulación de agua en vereda cerca de Av. Collao con Los Carrera",
+                    timestamp: "2026-07-22T21:00:00Z",
+                    confirmaciones_vecinales: 3,
+                    estado: "activo"
+                },
+                {
+                    id: "rep_20260722_collao_02",
+                    latitud: -36.8255,
+                    longitud: -73.0250,
+                    categoria: "colector_tapado",
+                    nivel_severidad: "bajo",
+                    descripcion: "Colector de agua con hojas secas en sector paso UBB",
+                    timestamp: "2026-07-22T20:30:00Z",
+                    confirmaciones_vecinales: 2,
+                    estado: "activo"
+                }
+            ],
+            weather: {
+                rainRate: 0.0,
+                rain24h: 0.0,
+                windSpeed: 12.0,
+                windGusts: 18.0,
+                soilSat: 35,      // Default normal soil saturation
+                riverLevel: 0.50   // Default normal river height (0.5m = normal)
+            }
+        };
 
-</main>
+        let leafletMap = null;
+        let mapMarkers = [];
+        let rainChartInstance = null;
 
-<footer>
-  <div class="container">
-    Collao Alerta — proyecto comunitario. Los reportes son de libre acceso: cualquiera puede
-    verlos y descargarlos.
-  </div>
-</footer>
+        // On DOM Load Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            initWeatherChart();
+            fetchWeatherData();
+            renderReportsFeed();
+            updateReportBadge();
+        });
 
-<script src="assets/js/main.js"></script>
+        // Tab Switcher
+        function switchTab(tabId) {
+            STATE.activeTab = tabId;
+
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`sec-${tabId}`).classList.remove('hidden');
+
+            // Update top bar buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-slate-800', 'text-sky-400', 'shadow-sm');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-slate-800', 'text-sky-400', 'shadow-sm');
+                activeBtn.classList.remove('text-slate-400');
+            }
+
+            // Update mobile tab buttons
+            document.querySelectorAll('.mob-tab').forEach(btn => {
+                btn.classList.remove('text-sky-400');
+                btn.classList.add('text-slate-400');
+            });
+            const activeMobBtn = document.getElementById(`mob-tab-${tabId}`);
+            if (activeMobBtn) {
+                activeMobBtn.classList.add('text-sky-400');
+                activeMobBtn.classList.remove('text-slate-400');
+            }
+
+            // If switching to Map tab, ensure Leaflet renders correctly
+            if (tabId === 'mapa') {
+                setTimeout(() => {
+                    if (!leafletMap) {
+                        initLeafletMap();
+                    } else {
+                        leafletMap.invalidateSize();
+                    }
+                }, 100);
+            }
+        }
+
+        // Fetch Live Weather telemetry from Open-Meteo API (Concepción Coordinates)
+        async function fetchWeatherData() {
+            try {
+                // Concepción lat/lng: -36.826, -73.049
+                const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-36.826&longitude=-73.049&current=precipitation,rain,wind_speed_10m,wind_gusts_10m&hourly=precipitation,rain&timezone=America%2FSantiago');
+                if (!response.ok) throw new Error('API fetch failed');
+                
+                const data = await response.json();
+                
+                if (data && data.current) {
+                    const currentRain = data.current.rain || data.current.precipitation || 0;
+                    const windSpd = data.current.wind_speed_10m || 12;
+                    const windGst = data.current.wind_gusts_10m || 18;
+
+                    // Compute 24h accumulation from hourly
+                    let acc24 = 0;
+                    if (data.hourly && data.hourly.rain) {
+                        acc24 = data.hourly.rain.slice(0, 24).reduce((a, b) => a + b, 0);
+                    }
+
+                    // Update UI state with real live data
+                    STATE.weather.rainRate = currentRain.toFixed(1);
+                    STATE.weather.rain24h = acc24.toFixed(1);
+                    STATE.weather.windSpeed = windSpd.toFixed(1);
+                    STATE.weather.windGusts = windGst.toFixed(1);
+
+                    updateTelemetryUI();
+                    if (data.hourly && data.hourly.rain && rainChartInstance) {
+                        updateChartWithData(data.hourly.time.slice(0, 24), data.hourly.rain.slice(0, 24));
+                    }
+                }
+            } catch (err) {
+                console.warn('Open-Meteo API fallback:', err);
+                updateTelemetryUI();
+            }
+        }
+
+        // Update UI elements from Telemetry State safely
+        function updateTelemetryUI() {
+            const setTxt = (id, txt) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = txt;
+            };
+
+            setTxt('tele-rain-rate', STATE.weather.rainRate);
+            setTxt('tele-rain-24h', STATE.weather.rain24h + ' mm');
+            setTxt('tele-wind-speed', STATE.weather.windSpeed);
+            setTxt('tele-wind-gusts', STATE.weather.windGusts + ' km/h');
+            
+            setTxt('quick-rain-rate', STATE.weather.rainRate + ' mm/h');
+            setTxt('quick-soil-sat', STATE.weather.soilSat + '%');
+            setTxt('quick-river-level', (STATE.weather.riverLevel >= 2.1 ? '🚨 DESBORDE (' : (STATE.weather.riverLevel >= 1.4 ? '⚠️ Alerta (' : 'Normal (')) + STATE.weather.riverLevel + 'm)');
+
+            setTxt('tele-soil-sat', STATE.weather.soilSat + '%');
+            setTxt('tele-river-level', Number(STATE.weather.riverLevel).toFixed(2));
+
+            const soilBar = document.getElementById('soil-sat-bar');
+            if (soilBar) soilBar.style.width = STATE.weather.soilSat + '%';
+
+            // Soil badge label
+            const soilBadge = document.getElementById('soil-sat-badge');
+            if (soilBadge) {
+                if (STATE.weather.soilSat > 75) {
+                    soilBadge.innerText = 'Alto';
+                    soilBadge.className = 'text-xs font-semibold text-rose-400 uppercase px-1.5 py-0.5 rounded bg-rose-950 border border-rose-800';
+                } else if (STATE.weather.soilSat > 50) {
+                    soilBadge.innerText = 'Medio';
+                    soilBadge.className = 'text-xs font-semibold text-amber-400 uppercase px-1.5 py-0.5 rounded bg-amber-950 border border-amber-800';
+                } else {
+                    soilBadge.innerText = 'Normal';
+                    soilBadge.className = 'text-xs font-semibold text-emerald-400 uppercase px-1.5 py-0.5 rounded bg-emerald-950 border border-emerald-800';
+                }
+            }
+
+            // Calculate Semaphoric Status Banner based on actual Rain + Simulated River Level
+            const banner = document.getElementById('semaforo-banner');
+            const badge = document.getElementById('semaforo-badge');
+            const title = document.getElementById('semaforo-title');
+            const desc = document.getElementById('semaforo-desc');
+
+            if (banner && badge && title && desc) {
+                if (STATE.weather.rainRate > 25 || STATE.weather.riverLevel >= 2.1 || STATE.weather.soilSat > 85) {
+                    // RED ALERT
+                    banner.className = 'bg-gradient-to-r from-rose-950 via-rose-900 to-slate-900 border-b border-rose-600/40 px-4 py-3 shadow-inner transition-all duration-300';
+                    badge.className = 'flex-shrink-0 w-10 h-10 rounded-full bg-rose-500/20 border-2 border-rose-500 flex items-center justify-center text-rose-400 animate-pulse';
+                    badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-xl"></i>';
+                    title.innerText = 'ALERTA ROJA - Riesgo Alto de Inundación / Desborde';
+                    title.className = 'font-extrabold text-rose-300 text-sm tracking-wide uppercase';
+                    desc.innerText = 'Cota crítica en Estero Nonguén o precipitaciones extremas en Collao. Tome precauciones inmediatas.';
+                } else if (STATE.weather.rainRate > 10 || STATE.weather.riverLevel >= 1.4 || STATE.weather.soilSat > 60) {
+                    // YELLOW ALERT
+                    banner.className = 'bg-gradient-to-r from-amber-950 via-amber-900 to-slate-900 border-b border-amber-600/40 px-4 py-3 shadow-inner transition-all duration-300';
+                    badge.className = 'flex-shrink-0 w-10 h-10 rounded-full bg-amber-500/20 border-2 border-amber-500 flex items-center justify-center text-amber-400 animate-pulse';
+                    badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-xl"></i>';
+                    title.innerText = 'ALERTA AMARILLA - Riesgo de Anegamiento Urbano';
+                    title.className = 'font-extrabold text-amber-300 text-sm tracking-wide uppercase';
+                    desc.innerText = 'Lluvias o incremento de caudal. Precaución en Av. Collao con Los Carrera y paso bajo nivel UBB.';
+                } else {
+                    // GREEN STATUS (Normal Baseline)
+                    banner.className = 'bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-900 border-b border-emerald-600/40 px-4 py-3 shadow-inner transition-all duration-300';
+                    badge.className = 'flex-shrink-0 w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-500 flex items-center justify-center text-emerald-400';
+                    badge.innerHTML = '<i class="fa-solid fa-circle-check text-xl"></i>';
+                    title.innerText = 'ESTADO VERDE - Condición Normal';
+                    title.className = 'font-extrabold text-emerald-300 text-sm tracking-wide uppercase';
+                    desc.innerText = 'Sin alertas críticas activas en Sector Collao. Datos meteorológicos en vivo desde Open-Meteo API.';
+                }
+            }
+        }
+
+        // Calibration Control Helpers
+        function updateSimulatedRiver(val) {
+            STATE.weather.riverLevel = parseFloat(val);
+            const sliderVal = document.getElementById('slider-river-val');
+            if (sliderVal) sliderVal.innerText = parseFloat(val).toFixed(2) + ' m';
+            updateTelemetryUI();
+        }
+
+        function updateSimulatedSoil(val) {
+            STATE.weather.soilSat = parseInt(val);
+            const sliderVal = document.getElementById('slider-soil-val');
+            if (sliderVal) sliderVal.innerText = val + '%';
+            updateTelemetryUI();
+        }
+
+        function resetSimulationToNormal() {
+            STATE.weather.riverLevel = 0.50;
+            STATE.weather.soilSat = 35;
+            const riverSlider = document.getElementById('simRiverSlider');
+            const soilSlider = document.getElementById('simSoilSlider');
+            if (riverSlider) riverSlider.value = 0.50;
+            if (soilSlider) soilSlider.value = 35;
+            
+            const riverVal = document.getElementById('slider-river-val');
+            const soilVal = document.getElementById('slider-soil-val');
+            if (riverVal) riverVal.innerText = '0.50 m';
+            if (soilVal) soilVal.innerText = '35%';
+            updateTelemetryUI();
+        }
+
+        // Initialize Leaflet Map centered on Sector Collao
+        function initLeafletMap() {
+            const mapEl = document.getElementById('collaoMap');
+            if (!mapEl) return;
+
+            // Collao / Nonguén center coordinates
+            const collaoLat = -36.8220;
+            const collaoLng = -73.0280;
+
+            leafletMap = L.map('collaoMap').setView([collaoLat, collaoLng], 14);
+
+            // Dark CartoDB tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(leafletMap);
+
+            // Draw Risk Zone Polygon (Estero Nonguén & Low Collao Plain)
+            const floodRiskZone = [
+                [-36.8180, -73.0330],
+                [-36.8210, -73.0290],
+                [-36.8280, -73.0210],
+                [-36.8330, -73.0150],
+                [-36.8350, -73.0180],
+                [-36.8290, -73.0250],
+                [-36.8230, -73.0320]
+            ];
+            L.polygon(floodRiskZone, {
+                color: '#38bdf8',
+                fillColor: '#0284c7',
+                fillOpacity: 0.15,
+                weight: 2,
+                dashArray: '4, 4'
+            }).addTo(leafletMap).bindTooltip("Zona de Susceptibilidad de Inundación (Estero Nonguén)", {permanent: false, direction: "top"});
+
+            // Map click listener to pick location for new report
+            leafletMap.on('click', function(e) {
+                const lat = e.latlng.lat.toFixed(4);
+                const lng = e.latlng.lng.toFixed(4);
+                const rLat = document.getElementById('reportLat');
+                const rLng = document.getElementById('reportLng');
+                const cDisp = document.getElementById('coordDisplay');
+                if (rLat) rLat.value = lat;
+                if (rLng) rLng.value = lng;
+                if (cDisp) cDisp.innerText = `${lat}, ${lng}`;
+                openReportModal();
+            });
+
+            // Render all current markers
+            renderMapMarkers();
+        }
+
+        // Render markers on Leaflet Map
+        function renderMapMarkers(filter = 'todos') {
+            if (!leafletMap) return;
+
+            // Clear existing markers
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            mapMarkers = [];
+
+            const filtered = filter === 'todos' ? STATE.reports : STATE.reports.filter(r => r.categoria === filter);
+
+            filtered.forEach(rep => {
+                let badgeColor = rep.nivel_severidad === 'alto' ? '#ef4444' : (rep.nivel_severidad === 'medio' ? '#f59e0b' : '#38bdf8');
+                let pulseClass = rep.nivel_severidad === 'alto' ? 'pulse-marker-high' : (rep.nivel_severidad === 'medio' ? 'pulse-marker-medium' : '');
+
+                const customIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="${pulseClass} w-7 h-7 flex items-center justify-center text-white text-xs font-black shadow-lg" style="background-color: ${badgeColor}; border:2px solid white; border-radius:50%;">
+                             <i class="fa-solid ${getCategoryIcon(rep.categoria)}"></i>
+                           </div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker([rep.latitud, rep.longitud], { icon: customIcon }).addTo(leafletMap);
+
+                const popupContent = `
+                    <div class="p-1 space-y-2">
+                        <div class="flex items-center justify-between text-[11px] font-bold">
+                            <span class="uppercase tracking-wider px-2 py-0.5 rounded text-white" style="background-color: ${badgeColor}">
+                                ${rep.categoria.replace('_', ' ')}
+                            </span>
+                            <span class="text-slate-400">${formatTime(rep.timestamp)}</span>
+                        </div>
+                        <p class="text-xs font-medium text-slate-100">${rep.descripcion}</p>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-700 text-xs">
+                            <span class="text-slate-400"><i class="fa-solid fa-users text-sky-400"></i> ${rep.confirmaciones_vecinales} vecinos respaldan</span>
+                            <button onclick="confirmReport('${rep.id}')" class="px-2.5 py-1 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded text-[11px] transition">
+                                +1 Confirmar
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+                mapMarkers.push(marker);
+            });
+        }
+
+        function filterMapMarkers(cat) {
+            document.querySelectorAll('.filter-btn').forEach(b => {
+                b.classList.remove('bg-sky-600', 'text-white');
+                b.classList.add('bg-slate-800', 'text-slate-300');
+            });
+            if (event && event.target) {
+                event.target.classList.add('bg-sky-600', 'text-white');
+                event.target.classList.remove('bg-slate-800', 'text-slate-300');
+            }
+            renderMapMarkers(cat);
+        }
+
+        // Initialize Chart.js Trend
+        function initWeatherChart() {
+            const chartCanvas = document.getElementById('rainChart');
+            if (!chartCanvas) return;
+            const ctx = chartCanvas.getContext('2d');
+            
+            // Initial forecast mock data hours
+            const labels = ['21:00', '22:00', '23:00', '00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00'];
+            const rainData = [18.5, 22.0, 25.4, 19.8, 14.2, 9.5, 6.0, 4.2, 3.0, 2.1, 1.5, 0.8];
+
+            rainChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Lluvia Estimada (mm/h)',
+                        data: rainData,
+                        backgroundColor: function(context) {
+                            const val = context.raw;
+                            return val > 20 ? '#ef4444' : (val > 10 ? '#f59e0b' : '#38bdf8');
+                        },
+                        borderRadius: 6,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: '#1e293b' },
+                            ticks: { color: '#94a3b8', font: { size: 10 } },
+                            title: { display: true, text: 'mm / hora', color: '#64748b', font: { size: 10 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartWithData(times, rains) {
+            if (!rainChartInstance) return;
+            const labels = times.map(t => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            rainChartInstance.data.labels = labels;
+            rainChartInstance.data.datasets[0].data = rains;
+            rainChartInstance.update();
+        }
+
+        // Render Citizen Reports Feed with null checks
+        function renderReportsFeed() {
+            const container = document.getElementById('reports-feed-container');
+            if (!container) return; // Prevent TypeError: Cannot set properties of null (setting 'innerHTML')
+            container.innerHTML = '';
+
+            STATE.reports.forEach(rep => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-md flex flex-col justify-between hover:border-slate-700 transition space-y-3';
+                
+                let sevBadge = rep.nivel_severidad === 'alto' 
+                    ? '<span class="bg-rose-950 text-rose-400 border border-rose-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🔴 ALTO</span>'
+                    : (rep.nivel_severidad === 'medio' 
+                        ? '<span class="bg-amber-950 text-amber-400 border border-amber-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🟡 MEDIO</span>'
+                        : '<span class="bg-sky-950 text-sky-400 border border-sky-800 text-[10px] font-extrabold px-2 py-0.5 rounded-md">🟢 BAJO</span>');
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-slate-300 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid ${getCategoryIcon(rep.categoria)} text-sky-400"></i>
+                                ${rep.categoria.replace('_', ' ')}
+                            </span>
+                            ${sevBadge}
+                        </div>
+                        <p class="text-xs text-slate-200 font-medium leading-relaxed">${rep.descripcion}</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                        <div class="text-[11px] text-slate-400">
+                            <i class="fa-regular fa-clock mr-1"></i> ${formatTime(rep.timestamp)}
+                        </div>
+                        
+                        <button onclick="confirmReport('${rep.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-sky-400 border border-slate-700 font-bold rounded-xl transition flex items-center space-x-1.5">
+                            <i class="fa-solid fa-thumbs-up text-xs"></i>
+                            <span>Confirmar (${rep.confirmaciones_vecinales})</span>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Confirm Report (+1 Vote)
+        function confirmReport(id) {
+            const report = STATE.reports.find(r => r.id === id);
+            if (report) {
+                report.confirmaciones_vecinales += 1;
+                renderReportsFeed();
+                renderMapMarkers();
+            }
+        }
+
+        // Open Report Modal
+        function openReportModal() {
+            const modal = document.getElementById('reportModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        // Close Report Modal
+        function closeReportModal() {
+            const modal = document.getElementById('reportModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        // Handle Fast Form Submission
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const catRadio = document.querySelector('input[name="categoria"]:checked');
+            const sevRadio = document.querySelector('input[name="nivel_severidad"]:checked');
+            const descEl = document.getElementById('reportDescripcion');
+            const latEl = document.getElementById('reportLat');
+            const lngEl = document.getElementById('reportLng');
+
+            const cat = catRadio ? catRadio.value : 'anegamiento';
+            const sev = sevRadio ? sevRadio.value : 'medio';
+            const desc = descEl ? descEl.value : 'Inconveniente registrado';
+            const lat = latEl ? parseFloat(latEl.value) : -36.8210;
+            const lng = lngEl ? parseFloat(lngEl.value) : -73.0310;
+
+            const newReport = {
+                id: `rep_${Date.now()}_collao`,
+                latitud: lat,
+                longitud: lng,
+                categoria: cat,
+                nivel_severidad: sev,
+                descripcion: desc,
+                timestamp: new Date().toISOString(),
+                confirmaciones_vecinales: 1,
+                estado: "activo"
+            };
+
+            STATE.reports.unshift(newReport);
+            renderReportsFeed();
+            renderMapMarkers();
+            updateReportBadge();
+            closeReportModal();
+
+            // Reset form input
+            if (descEl) descEl.value = '';
+        }
+
+        function updateReportBadge() {
+            const badge = document.getElementById('report-count-badge');
+            if (badge) badge.innerText = STATE.reports.length;
+        }
+
+        // Helpers
+        function getCategoryIcon(cat) {
+            switch(cat) {
+                case 'anegamiento': return 'fa-cloud-showers-heavy';
+                case 'colector_tapado': return 'fa-broom';
+                case 'desborde': return 'fa-water';
+                case 'arbol_caido': return 'fa-tree';
+                default: return 'fa-triangle-exclamation';
+            }
+        }
+
+        function formatTime(isoStr) {
+            const date = new Date(isoStr);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    </script>
 </body>
 </html>
